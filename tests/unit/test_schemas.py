@@ -36,3 +36,36 @@ def test_invalid_quote_currency_code_raises_error():
     with pytest.raises(ValidationError) as exc_info:
         FXRateData(**payload)
     assert "Invalid quote currency code 'BRLX'" in str(exc_info.value)
+
+
+def test_zero_rate_raises_validation_error():
+    payload = {
+        "base_currency": "USD",
+        "observation_date": date(2026, 7, 24),
+        "rates": {"BRL": 0.0}
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        FXRateData(**payload)
+    assert "Exchange rates must be strictly positive" in str(exc_info.value)
+
+
+def test_invalid_base_currency_length_raises_error():
+    # Testando moeda base muito curta (2 letras)
+    payload_short = {
+        "base_currency": "US",
+        "observation_date": date(2026, 7, 24),
+        "rates": {"BRL": 5.45}
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        FXRateData(**payload_short)
+    assert "String should have at least 3 characters" in str(exc_info.value)
+
+    # Testando moeda base muito longa (4 letras)
+    payload_long = {
+        "base_currency": "USDT",
+        "observation_date": date(2026, 7, 24),
+        "rates": {"BRL": 5.45}
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        FXRateData(**payload_long)
+    assert "String should have at most 3 characters" in str(exc_info.value)
