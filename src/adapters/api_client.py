@@ -9,14 +9,14 @@ class FXApiClient:
     Converts raw JSON responses into the Domain's FXRateData Contract.
     """
 
-    def __init__(self, base_url: str = "https://api.frankfurter.dev"):
+    def __init__(self, base_url: str = "https://api.frankfurter.dev/v1"):
         self.base_url = base_url
 
     def fetch_latest_rates(self, base_currency: str = "USD") -> FXRateData:
         """
         Fetches latest rates for a given base currency and validates the payload against the domain schema.
         """
-        url = f"{self.base_url}/latest?from={base_currency}"
+        url = f"{self.base_url}/latest?base={base_currency}"
 
         try:
             response = httpx.get(url, timeout=10.0)
