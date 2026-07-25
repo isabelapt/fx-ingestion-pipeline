@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 from typing import Optional
 from src.adapters.api_client import FXApiClient
 from src.domain.entities import FXRateEntity
@@ -29,12 +30,15 @@ class IngestFXRatesUseCase:
         base_currency: str = "USD",
         previous_rate: Optional[float] = None,
         target_currency: str = "BRL",
+        observation_date: Optional[date] = None,
     ) -> IngestionResult:
         """
         Executes the ingestion pipeline for a given base currency.
         """
         # 1. Ingestão e validação do Schema de dados de entrada via Adapter
-        schema_data = self.api_client.fetch_latest_rates(base_currency=base_currency)
+        schema_data = self.api_client.fetch_rates(
+            base_currency=base_currency, observation_date=observation_date
+        )
 
         # 2. Transforma Schema em Entidade de Domínio
         entity = FXRateEntity(

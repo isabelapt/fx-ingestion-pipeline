@@ -23,7 +23,7 @@ def test_fetch_latest_rates_success():
         client = FXApiClient()
         result = client.fetch_latest_rates("USD")
 
-        mock_get.assert_called_once_with("https://api.frankfurter.dev/v1/latest?base=USD", timeout=10.0)
+        mock_get.assert_called_once_with("https://api.frankfurter.dev/v1/latest", params={"base": "USD"}, timeout=10.0)
 
         assert result.base_currency == "USD"
         assert result.rates["BRL"] == 5.45
@@ -43,3 +43,27 @@ def test_fetch_latest_rates_http_error_raises_exception():
             client.fetch_latest_rates("USD")
 
         assert "Failed to fetch rates from external API" in str(exc_info.value)
+        
+@patch("httpx.get")
+def test_fetch_rates_historical_success(mock_get):
+    mock_response = {
+        "amount": 1.0,
+        "base": "USD",
+        "date": "1999-01-04",
+        "rates": {"EUR": 0.84825},
+    }
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = mock_response
+
+    client = FXApiClient()
+    historical_date = date(1999, 1, 4)
+    result = client.fetch_rates(base_currency="USD", observation_date=historical_date)
+
+    assert result.observation_date == date(1999, 1, 4)
+    assert result.rates["EUR"] == 0.84825
+
+    mock_get.assert_called_once_with(
+        "https://api.frankfurter.dev/v1/1999-01-04",
+        params={"base": "USD"},
+        timeout=10.0,
+    )
