@@ -23,7 +23,7 @@ def test_fetch_latest_rates_success():
         client = FXApiClient()
         result = client.fetch_latest_rates("USD")
 
-        mock_get.assert_called_once_with("https://api.frankfurter.dev/latest?from=USD", timeout=10.0)
+        mock_get.assert_called_once_with("https://api.frankfurter.dev/v1/latest?base=USD", timeout=10.0)
 
         assert result.base_currency == "USD"
         assert result.rates["BRL"] == 5.45
@@ -42,4 +42,4 @@ def test_fetch_latest_rates_http_error_raises_exception():
         with pytest.raises(RuntimeError) as exc_info:
             client.fetch_latest_rates("USD")
 
-        assert "Failed to fetch rates from external API" in str(exc_info.value)
+        assert "Failed to fetch rates from external API" in str(exc_info.value)
