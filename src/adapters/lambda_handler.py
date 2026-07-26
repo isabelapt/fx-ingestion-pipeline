@@ -5,7 +5,17 @@ from src.infra.s3_repository import S3Repository
 from src.use_cases.ingest_fx_rates import IngestFXRatesUseCase
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """AWS Lambda entrypoint triggered by EventBridge or manual invocation."""
+    """
+    Handle an FX rate ingestion request from EventBridge or a manual invocation.
+    
+    Parameters:
+        event (Dict[str, Any]): Invocation data containing an optional ``base_currency`` and ``date``.
+        context (Any): AWS Lambda execution context.
+    
+    Returns:
+        Dict[str, Any]: A successful response containing the ingestion identity, S3 path,
+            anomaly status, and quarantine status.
+    """
     base_currency = event.get("base_currency", "USD")
     observation_date = event.get("date")
     bucket_name = os.getenv("S3_BUCKET_NAME", "fx-ingestion-raw-data-dev")

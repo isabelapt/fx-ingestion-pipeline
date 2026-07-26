@@ -22,7 +22,18 @@ class FXRateEntity:
 
     def calculate_rate_with_spread(self, target_currency: str, spread_pct: float) -> float:
         """
-        Calculates the commercial exchange rate including spread percentage.
+        Calculate the exchange rate for a target currency after applying a percentage spread.
+        
+        Parameters:
+        	target_currency (str): Currency code for the desired quote rate.
+        	spread_pct (float): Percentage spread to apply to the raw rate.
+        
+        Returns:
+        	float: The spread-adjusted rate rounded to six decimal places.
+        
+        Raises:
+        	ValueError: If the target currency matches the base currency.
+        	KeyError: If no quote rate is available for the target currency.
         """
         target_upper = target_currency.strip().upper()
 
