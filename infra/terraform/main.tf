@@ -79,8 +79,8 @@ resource "aws_iam_policy" "lambda_s3_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["s3:PutObject", "s3:GetObject", "s3:ListBucket"]
+      Effect = "Allow"
+      Action = ["s3:PutObject", "s3:GetObject", "s3:ListBucket"]
       Resource = [
         aws_s3_bucket.fx_raw_data.arn,
         "${aws_s3_bucket.fx_raw_data.arn}/*"
@@ -150,8 +150,8 @@ resource "aws_lambda_permission" "allow_eventbridge" {
 # AWS LAMBDA ASYNCHRONOUS RETRIES CONFIGURATION
 # -----------------------------------------------------------------------------
 resource "aws_lambda_function_event_invoke_config" "fx_ingestor_async_config" {
-  function_name                = aws_lambda_function.fx_ingestor.function_name
-  maximum_retry_attempts       = 2 # 1 initial execution + 2 retries = 3 total attempts
+  function_name          = aws_lambda_function.fx_ingestor.function_name
+  maximum_retry_attempts = 2 # 1 initial execution + 2 retries = 3 total attempts
 }
 
 # -----------------------------------------------------------------------------
@@ -275,8 +275,8 @@ resource "aws_iam_policy" "glue_s3_read_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["s3:GetObject", "s3:ListBucket"]
+      Effect = "Allow"
+      Action = ["s3:GetObject", "s3:ListBucket"]
       Resource = [
         aws_s3_bucket.fx_raw_data.arn,
         "${aws_s3_bucket.fx_raw_data.arn}/*"

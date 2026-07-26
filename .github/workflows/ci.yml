@@ -50,7 +50,7 @@ jobs:
         run: |
           cd infra/terraform
           terraform init -backend=false
-          terraform fmt -check
+          terraform fmt -check -diff -recursive
           terraform validate
 
   deploy-infrastructure:
