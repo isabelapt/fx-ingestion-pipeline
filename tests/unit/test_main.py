@@ -27,6 +27,6 @@ def test_run_pipeline_success(mock_use_case_cls, mock_s3_repo_cls):
     run_pipeline(base_currency="USD", bucket_name="my-fx-bucket")
 
     # Assertions
-    mock_use_case_inst.execute.assert_called_once_with(base_currency="USD")
+    mock_use_case_inst.execute.assert_called_once_with(base_currency="USD", observation_date=None)
     mock_s3_repo_cls.assert_called_once_with(bucket_name="my-fx-bucket")
     mock_s3_repo_inst.save_raw_rate.assert_called_once_with(mock_entity)
