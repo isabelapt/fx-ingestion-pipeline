@@ -1,0 +1,52 @@
+name: Continuous Integration (CI)
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    python-tests:
+        name: Python Tests & Coverage
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+
+            - name: Set up Astral uv
+              uses: astral-sh/setup-uv@v3
+              with:
+                  version: "latest"
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.12"
+
+            - name: Install dependencies
+              run: uv sync
+
+            - name: Run Pytest with Coverage
+              run: uv run pytest --cov=src --cov-report=term-missing --cov-fail-under=100
+
+    terraform-checks:
+        name: Terraform Lint & Validate
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                  terraform_version: "1.5.0"
+
+            - name: Terraform Init & Validate
+              run: |
+                  cd infra/terraform
+                  terraform init -backend=false
+                  terraform fmt -check
+                  terraform validate
