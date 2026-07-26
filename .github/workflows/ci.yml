@@ -1,4 +1,4 @@
-name: Continuous Integration (CI)
+name: Continuous Integration & Deployment (CI/CD)
 
 on:
     push:
@@ -6,11 +6,14 @@ on:
     pull_request:
         branches: [main]
 
+permissions:
+    id-token: write
+    contents: read
+
 jobs:
     python-tests:
         name: Python Tests & Coverage
         runs-on: ubuntu-latest
-
         steps:
             - name: Check out repository
               uses: actions/checkout@v4
@@ -34,7 +37,6 @@ jobs:
     terraform-checks:
         name: Terraform Lint & Validate
         runs-on: ubuntu-latest
-
         steps:
             - name: Check out repository
               uses: actions/checkout@v4
@@ -50,3 +52,31 @@ jobs:
                   terraform init -backend=false
                   terraform fmt -check
                   terraform validate
+
+    deploy-infrastructure:
+        name: Provision AWS S3 via Terraform (OIDC)
+        needs: [python-tests, terraform-checks]
+        # Executa o deploy SOMENTE se for um push direto na main (pós-merge de PR)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                  terraform_version: "1.5.0"
+
+            - name: Configure AWS Credentials via OIDC
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+                  aws-region: "us-east-1"
+
+            - name: Terraform Apply
+              run: |
+                  cd infra/terraform
+                  terraform init
+                  terraform apply -auto-approve
