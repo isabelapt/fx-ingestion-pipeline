@@ -37,6 +37,7 @@ SELECT
     date,
     rates['BRL'] AS usd_brl_rate,
     AVG(rates['BRL']) OVER (
+        PARTITION BY base
         ORDER BY date 
         ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
     ) AS moving_avg_7d
