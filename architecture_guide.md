@@ -133,10 +133,6 @@ Nos testes unitários (como o [test_lambda_handler.py](file:///c:/Users/isabe/Do
 * **Isolamento de Rede e S3:** Ao invés do teste bater na API de câmbio real ou tentar salvar um arquivo no S3 real (o que causaria lentidão e custos desnecessários), nós usamos o decorator `@patch` do Python.
 * **Dublês de Teste:** O `@patch` substitui temporariamente as chamadas de classe (`S3Repository`, `FXApiClient`) por objetos `MagicMock`.
 * **Configuração de Respostas:** Nós programamos o mock para retornar um valor imutável pré-definido quando for acionado:
-  ```python
-  mock_use_case_inst.execute.return_value = IngestionResult(entity=mock_entity, is_anomaly=False)
-  ```
-* **Asserções de Comportamento:** No final, além de checar a saída do handler, usamos comandos como `assert_called_once_with` para garantir que o fluxo de negócios foi acionado com os dados corretos que vieram do evento.
 
 ---
 
