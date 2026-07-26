@@ -59,6 +59,8 @@ jobs:
         # Executa o deploy SOMENTE se for um push direto na main (pós-merge de PR)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         runs-on: ubuntu-latest
+        env:
+            ACTIONS_STEP_DEBUG: true
 
         steps:
             - name: Check out repository
@@ -74,6 +76,16 @@ jobs:
                   echo "Repository: $GITHUB_REPOSITORY"
                   echo "Ref: $GITHUB_REF"
                   echo "Event: $GITHUB_EVENT_NAME"
+
+            - name: Inspect OIDC token
+              run: |
+                  TOKEN=$(curl -s \
+                    -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+                    "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" | jq -r '.value')
+                  # Add base64 padding to avoid base64 command erroring
+                  RAW_JWT=$(echo "$TOKEN" | cut -d "." -f2)
+                  PADDED_JWT=$(echo -n "$RAW_JWT" | awk '{ if (length($0) % 4 == 2) print $0"=="; else if (length($0) % 4 == 3) print $0"="; else print $0 }')
+                  echo "$PADDED_JWT" | base64 -d | jq || echo "Could not decode or parse OIDC token"
 
             - name: Configure AWS Credentials via OIDC
               uses: aws-actions/configure-aws-credentials@v4
