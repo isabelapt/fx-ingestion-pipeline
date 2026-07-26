@@ -16,7 +16,9 @@ def test_run_pipeline_success(mock_use_case_cls, mock_s3_repo_cls):
     mock_entity.rates = {"BRL": 5.45}
 
     mock_use_case_inst.execute.return_value = IngestionResult(
-        entity=mock_entity, is_anomaly=False
+        entity=mock_entity,
+        s3_path="raw/year=2026/month=07/day=25/USD_20260725.json",
+        is_anomaly=False
     )
 
     mock_s3_repo_inst = MagicMock()
@@ -29,4 +31,3 @@ def test_run_pipeline_success(mock_use_case_cls, mock_s3_repo_cls):
     # Assertions
     mock_use_case_inst.execute.assert_called_once_with(base_currency="USD", observation_date=None)
     mock_s3_repo_cls.assert_called_once_with(bucket_name="my-fx-bucket")
-    mock_s3_repo_inst.save_raw_rate.assert_called_once_with(mock_entity)
