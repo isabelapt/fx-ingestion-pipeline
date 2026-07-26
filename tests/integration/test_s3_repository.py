@@ -43,3 +43,18 @@ def test_s3_repository_save_raw_rate_integration(aws_credentials):
     
     assert saved_content["base_currency"] == "USD"
     assert saved_content["rates"]["BRL"] == 5.25
+
+@mock_aws
+def test_client_error_raises_runtime_error(aws_credentials):
+    # Non-existent bucket forces a ClientError from boto3
+    repo = S3Repository(bucket_name="non-existent-bucket-name")
+    from datetime import date
+    from src.domain.entities import FXRateEntity
+    entity = FXRateEntity(
+        base_currency="USD",
+        observation_date=date(2026, 7, 26),
+        rates={"BRL": 5.25}
+    )
+    with pytest.raises(RuntimeError) as excinfo:
+        repo.save_raw_rate(entity)
+    assert "Failed to persist entity to S3" in str(excinfo.value)
