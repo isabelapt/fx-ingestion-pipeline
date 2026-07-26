@@ -69,6 +69,12 @@ jobs:
               with:
                   terraform_version: "1.5.0"
 
+            - name: Debug GitHub Context
+              run: |
+                  echo "Repository: $GITHUB_REPOSITORY"
+                  echo "Ref: $GITHUB_REF"
+                  echo "Event: $GITHUB_EVENT_NAME"
+
             - name: Configure AWS Credentials via OIDC
               uses: aws-actions/configure-aws-credentials@v4
               with:
