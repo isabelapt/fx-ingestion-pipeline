@@ -37,7 +37,7 @@ def test_s3_repository_save_raw_rate_integration(aws_credentials):
     s3_path = repo.save_raw_rate(entity)
 
     # Valida caminho da partição
-    assert "raw/year=2026/month=07/day=26/USD_20260726.json" in s3_path
+    assert s3_path == "raw/year=2026/month=07/day=26/USD_20260726.json"
 
     # Lê o objeto gravado no S3 virtualizado para validar conteúdo
     response = s3_client.get_object(Bucket=bucket_name, Key=s3_path)
