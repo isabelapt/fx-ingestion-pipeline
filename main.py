@@ -1,6 +1,7 @@
 import argparse
 from datetime import date
 import sys
+from src.adapters.api_client import FXApiClient
 from src.infra.s3_repository import S3Repository
 from src.use_cases.ingest_fx_rates import IngestFXRatesUseCase
 
@@ -14,25 +15,19 @@ def run_pipeline(
     """
     print(f"🚀 Starting FX Rate Ingestion Pipeline for Base Currency: [{base_currency}]")
 
-    # 1. Instancia o Use Case
-    use_case = IngestFXRatesUseCase()
+    # 1. Instancia dependências e injeta no Use Case
+    api_client = FXApiClient()
+    repo = S3Repository(bucket_name=bucket_name or "dummy-bucket-for-cli-non-s3-runs")
+    use_case = IngestFXRatesUseCase(api_client=api_client, s3_repository=repo)
 
-    # 2. Executa a Ingestão e Regras do Domínio
+    # 2. Executa a Ingestão, Regras do Domínio e Persistência S3
     result = use_case.execute(base_currency=base_currency, observation_date=observation_date)
     print(f"✅ Ingestion successful! Identity: {result.entity.identity}")
     print(f"📊 Rates fetched for {len(result.entity.rates)} currencies.")
+    print(f"✨ Successfully persisted to S3 Path: {result.s3_path}")
 
     if result.is_anomaly:
         print("⚠️ WARNING: Detected price anomaly based on business rules!")
-
-    # 3. Persistência em S3 (Se um bucket for fornecido)
-    if bucket_name:
-        print(f"📦 Persisting raw data to S3 bucket: [{bucket_name}]...")
-        repo = S3Repository(bucket_name=bucket_name)
-        s3_key = repo.save_raw_rate(result.entity)
-        print(f"✨ Successfully persisted to S3 Key: {s3_key}")
-    else:
-        print("ℹ️ No S3 bucket specified. Skipping persistence step.")
 
 
 def main() -> None:

@@ -34,3 +34,16 @@ class FXRateEntity:
 
         raw_rate = self.rates[target_upper]
         return round(raw_rate * (1.0 + (spread_pct / 100.0)), 6)
+
+
+@dataclass(frozen=True)
+class IngestionResult:
+    """
+    Data Transfer Object (DTO) representing the execution result of the ingestion pipeline.
+    Connects domain entity with pipeline execution metadata (S3 storage and quality alerts).
+    """
+
+    entity: FXRateEntity
+    s3_path: str
+    is_anomaly: bool = False
+    quarantined: bool = False
