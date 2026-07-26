@@ -127,7 +127,7 @@ resource "aws_lambda_function" "fx_ingestor" {
 # AWS EVENTBRIDGE (DAILY CRON TRIGGER)
 # -----------------------------------------------------------------------------
 resource "aws_cloudwatch_event_rule" "daily_trigger" {
-  name                = "fx-ingestion-daily-cron"
+  name                = "fx-ingestion-daily-cron-${var.environment}"
   description         = "Triggers daily FX rate ingestion at 08:00 AM UTC"
   schedule_expression = var.cron_schedule
 }
