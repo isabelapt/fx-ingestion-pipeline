@@ -11,7 +11,12 @@ def run_pipeline(
      bucket_name: str | None = None,
      observation_date: date | None = None) -> None:
     """
-    Executes the end-to-end FX Rate ingestion pipeline.
+    Execute the end-to-end FX rate ingestion pipeline.
+    
+    Parameters:
+        base_currency (str): Currency used as the basis for the exchange rates.
+        bucket_name (str | None): Target S3 bucket name, or None to use the default CLI bucket.
+        observation_date (date | None): Historical date for the rates, or None for the current date.
     """
     print(f"🚀 Starting FX Rate Ingestion Pipeline for Base Currency: [{base_currency}]")
 
@@ -31,6 +36,11 @@ def run_pipeline(
 
 
 def main() -> None:
+    """
+    Parse command-line options and run the FX rate ingestion pipeline.
+    
+    The command accepts a base currency, an optional S3 bucket, and an optional historical observation date. Pipeline failures are reported to standard error and terminate the process with status code 1.
+    """
     parser = argparse.ArgumentParser(description="FX Ingestion Pipeline CLI")
     parser.add_argument(
         "--base",

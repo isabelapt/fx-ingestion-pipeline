@@ -19,6 +19,12 @@ class IngestFXRatesUseCase:
     """
 
     def __init__(self, api_client: FXApiClient, s3_repository: S3Repository):
+        """Initialize the use case with the FX API client and S3 repository.
+        
+        Parameters:
+            api_client (FXApiClient): Client used to fetch FX rate data.
+            s3_repository (S3Repository): Repository used to persist raw FX rate data.
+        """
         self.api_client = api_client
         self.s3_repository = s3_repository
 
@@ -26,6 +32,18 @@ class IngestFXRatesUseCase:
         self, base_currency: str = "USD", observation_date: Optional[date] = None
     ) -> IngestionResult:
         # Convert observation_date if passed as string/other format in API/tests
+        """
+        Ingest FX rates for a base currency and persist the resulting entity.
+        
+        Parameters:
+            base_currency (str): Currency used as the base for the retrieved rates.
+            observation_date (Optional[date]): Date associated with the rates; ISO-formatted
+                strings are converted to dates.
+        
+        Returns:
+            IngestionResult: The ingested FX rate entity, its storage path, and ingestion
+                status metadata.
+        """
         final_date = observation_date
         if isinstance(observation_date, str):
             final_date = date.fromisoformat(observation_date)

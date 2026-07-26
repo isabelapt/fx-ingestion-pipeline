@@ -7,7 +7,9 @@ from src.infra.s3_repository import S3Repository
 
 @pytest.fixture
 def aws_credentials():
-    """Mocked AWS Credentials for moto."""
+    """
+    Configure environment variables with test AWS credentials and region settings for moto-backed tests.
+    """
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
     os.environ["AWS_SECURITY_TOKEN"] = "testing"
