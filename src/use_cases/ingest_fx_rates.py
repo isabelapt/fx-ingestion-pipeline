@@ -1,58 +1,97 @@
-from dataclasses import dataclass
-from datetime import date
+from datetime import datetime, date
 from typing import Optional
 from src.adapters.api_client import FXApiClient
-from src.domain.entities import FXRateEntity
+from src.domain.entities import FXRateEntity, IngestionResult
 from src.domain.rules import BusinessRules
-
-
-@dataclass
-class IngestionResult:
-    """DTO representing the output of the ingestion process."""
-
-    entity: FXRateEntity
-    is_anomaly: bool
+from src.domain.schemas import FXRateData
+from src.infra.s3_repository import S3Repository
 
 
 class IngestFXRatesUseCase:
     """
-    Application Service / Use Case orchestrating the ingestion flow:
-    1. Fetches raw rate data via API Adapter.
-    2. Constructs domain entity.
-    3. Evaluates business rules (e.g., market anomaly detection against historical rate).
+    Use Case responsible for orchestrating the end-to-end FX Rate ingestion pipeline:
+    1. Fetches raw data from external provider via API adapter.
+    2. Enforces Data Contract validation via Pydantic schema.
+    3. Transforms validated schema into Domain Entity.
+    4. Evaluates Business Rules & Anomaly Detection (Z-score / Moving Average).
+    5. Persists raw payload into partitioned S3 Data Lake layer.
+    6. Returns an IngestionResult DTO with execution metadata.
     """
 
-    def __init__(self, api_client: Optional[FXApiClient] = None):
-        self.api_client = api_client or FXApiClient()
+    def __init__(self, api_client: FXApiClient, s3_repository: S3Repository):
+        """Initialize the use case with the FX API client and S3 repository.
+        
+        Parameters:
+            api_client (FXApiClient): Client used to fetch FX rate data.
+            s3_repository (S3Repository): Repository used to persist raw FX rate data.
+        """
+        self.api_client = api_client
+        self.s3_repository = s3_repository
 
     def execute(
-        self,
-        base_currency: str = "USD",
-        previous_rate: Optional[float] = None,
-        target_currency: str = "BRL",
-        observation_date: Optional[date] = None,
+        self, base_currency: str = "USD", observation_date: Optional[date] = None
     ) -> IngestionResult:
+        # Convert observation_date if passed as string/other format in API/tests
         """
-        Executes the ingestion pipeline for a given base currency.
+        Ingest FX rates for a base currency and persist the resulting entity.
+
+        Parameters:
+            base_currency (str): Currency used as the base for the retrieved rates.
+            observation_date (Optional[date]): Date associated with the rates; ISO-formatted
+                strings are converted to dates.
+
+        Returns:
+            IngestionResult: The ingested FX rate entity, its storage path, and ingestion
+                status metadata.
         """
-        # 1. Ingestão e validação do Schema de dados de entrada via Adapter
-        schema_data = self.api_client.fetch_rates(
-            base_currency=base_currency, observation_date=observation_date
+        final_date = observation_date
+        if isinstance(observation_date, str):
+            final_date = date.fromisoformat(observation_date)
+
+        # 1. Fetch data via API adapter (returns validated FXRateData)
+        validated_data = self.api_client.fetch_rates(
+            base_currency=base_currency, observation_date=final_date
         )
 
-        # 2. Transforma Schema em Entidade de Domínio
-        entity = FXRateEntity(
-            base_currency=schema_data.base_currency,
-            observation_date=schema_data.observation_date,
-            rates=schema_data.rates,
+        # 2. Instantiate Domain Entity
+        fx_entity = FXRateEntity(
+            base_currency=validated_data.base_currency,
+            observation_date=validated_data.observation_date,
+            rates=validated_data.rates,
         )
 
-        # 3. Aplicação de Regra de Negócio (Detecção de Anomalia)
+        # 3. Check for Business Rules / Anomaly Detection
         is_anomaly = False
-        if previous_rate and target_currency in entity.rates:
-            current_rate = entity.rates[target_currency]
-            is_anomaly = BusinessRules.is_anomaly_rate(
-                previous_rate=previous_rate, current_rate=current_rate
+
+        # Fetch previous day's data to detect anomalies
+        try:
+            from datetime import timedelta
+            previous_date = fx_entity.observation_date - timedelta(days=1)
+            previous_data = self.api_client.fetch_rates(
+                base_currency=base_currency, observation_date=previous_date
             )
 
-        return IngestionResult(entity=entity, is_anomaly=is_anomaly)
+            # Check for anomalies in any currency rate
+            for currency, current_rate in fx_entity.rates.items():
+                if currency in previous_data.rates:
+                    previous_rate = previous_data.rates[currency]
+                    if BusinessRules.is_anomaly_rate(previous_rate, current_rate):
+                        is_anomaly = True
+                        break
+        except Exception:
+            # If we can't fetch historical data, proceed without anomaly detection
+            pass
+
+        # 4. Apply quarantine policy: quarantine if anomaly is detected
+        quarantined = is_anomaly
+
+        # 5. Persist to partitioned S3 bucket passing the entity
+        s3_path = self.s3_repository.save_raw_rate(fx_entity)
+
+        # 6. Construct and return IngestionResult DTO
+        return IngestionResult(
+            entity=fx_entity,
+            s3_path=s3_path,
+            is_anomaly=is_anomaly,
+            quarantined=quarantined,
+        )

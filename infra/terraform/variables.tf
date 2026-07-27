@@ -1,17 +1,35 @@
 variable "aws_region" {
   type        = string
   default     = "us-east-1"
-  description = "AWS region for provisioning resources"
+  description = "Região AWS onde os recursos serão implantados"
 }
 
 variable "environment" {
   type        = string
   default     = "dev"
-  description = "Deployment environment (dev, staging, prod)"
+  description = "Ambiente (dev, staging, prod)"
 }
 
 variable "bucket_prefix" {
   type        = string
   default     = "fx-ingestion-raw-data"
-  description = "Prefix for the S3 bucket name"
+  description = "Prefixo do nome do Bucket S3"
+}
+
+variable "force_destroy" {
+  type        = bool
+  default     = false
+  description = "Se verdadeiro, permite apagar o bucket S3 mesmo com objetos dentro ao rodar terraform destroy"
+}
+
+variable "lambda_timeout" {
+  type        = number
+  default     = 30
+  description = "Timeout em segundos da execução da Lambda"
+}
+
+variable "cron_schedule" {
+  type        = string
+  default     = "cron(0 8 * * ? *)"
+  description = "Expressão de agendamento do EventBridge"
 }
