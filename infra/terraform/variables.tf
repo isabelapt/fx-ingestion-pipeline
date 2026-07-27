@@ -18,7 +18,7 @@ variable "bucket_prefix" {
 
 variable "force_destroy" {
   type        = bool
-  default     = true
+  default     = false
   description = "Se verdadeiro, permite apagar o bucket S3 mesmo com objetos dentro ao rodar terraform destroy"
 }
 

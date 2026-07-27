@@ -2,8 +2,8 @@
 -- 1. DDL: External Table Creation in Amazon Athena (Data Catalog)
 -- =============================================================================
 CREATE EXTERNAL TABLE IF NOT EXISTS fx_rates_db_dev.raw_fx_rates (
-    base STRING,
-    date STRING,
+    base_currency STRING,
+    observation_date STRING,
     rates MAP<STRING, DOUBLE>
 )
 PARTITIONED BY (
@@ -24,22 +24,22 @@ MSCK REPAIR TABLE fx_rates_db_dev.raw_fx_rates;
 -- =============================================================================
 
 -- A) USD/BRL exchange rate query ordered by the most recent dates
-SELECT 
-    date,
-    base,
+SELECT
+    observation_date,
+    base_currency,
     rates['BRL'] AS usd_brl_rate
 FROM fx_rates_db_dev.raw_fx_rates
 WHERE year = '2026'
-ORDER BY date DESC;
+ORDER BY observation_date DESC;
 
 -- B) Moving average and daily variation to identify volatility
-SELECT 
-    date,
+SELECT
+    observation_date,
     rates['BRL'] AS usd_brl_rate,
     AVG(rates['BRL']) OVER (
-        PARTITION BY base
-        ORDER BY date 
+        PARTITION BY base_currency
+        ORDER BY observation_date
         ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
     ) AS moving_avg_7d
 FROM fx_rates_db_dev.raw_fx_rates
-ORDER BY date DESC;
+ORDER BY observation_date DESC;

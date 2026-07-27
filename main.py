@@ -12,17 +12,20 @@ def run_pipeline(
      observation_date: date | None = None) -> None:
     """
     Execute the end-to-end FX rate ingestion pipeline.
-    
+
     Parameters:
         base_currency (str): Currency used as the basis for the exchange rates.
-        bucket_name (str | None): Target S3 bucket name, or None to use the default CLI bucket.
+        bucket_name (str | None): Target S3 bucket name. Required for S3 persistence.
         observation_date (date | None): Historical date for the rates, or None for the current date.
     """
     print(f"🚀 Starting FX Rate Ingestion Pipeline for Base Currency: [{base_currency}]")
 
     # 1. Instancia dependências e injeta no Use Case
+    if bucket_name is None:
+        raise ValueError("bucket_name is required. Please provide a valid S3 bucket name using the --bucket argument.")
+
     api_client = FXApiClient()
-    repo = S3Repository(bucket_name=bucket_name or "dummy-bucket-for-cli-non-s3-runs")
+    repo = S3Repository(bucket_name=bucket_name)
     use_case = IngestFXRatesUseCase(api_client=api_client, s3_repository=repo)
 
     # 2. Executa a Ingestão, Regras do Domínio e Persistência S3

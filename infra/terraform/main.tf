@@ -24,7 +24,7 @@ provider "aws" {
 resource "aws_s3_bucket" "fx_raw_data" {
   bucket = "${var.bucket_prefix}-${var.environment}"
 
-  force_destroy = var.force_destroy
+  force_destroy = var.environment == "dev" || var.environment == "staging" ? true : var.force_destroy
 }
 
 # SSE-S3 Encryption Configuration
@@ -97,10 +97,30 @@ resource "aws_iam_role_policy_attachment" "lambda_s3_attach" {
 # -----------------------------------------------------------------------------
 # PYTHON APPLICATION ZIP PACKAGING
 # -----------------------------------------------------------------------------
+
+# Install dependencies and prepare Lambda package
+resource "null_resource" "lambda_dependencies" {
+  triggers = {
+    pyproject = filemd5("${path.module}/../../pyproject.toml")
+    src_hash  = sha1(join("", [for f in fileset("${path.module}/../../src", "**") : filemd5("${path.module}/../../src/${f}")]))
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      rm -rf ${path.module}/lambda_staging
+      mkdir -p ${path.module}/lambda_staging
+      pip install --target ${path.module}/lambda_staging httpx pydantic
+      cp -r ${path.module}/../../src/* ${path.module}/lambda_staging/
+    EOT
+  }
+}
+
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/../../src"
+  source_dir  = "${path.module}/lambda_staging"
   output_path = "${path.module}/lambda_payload.zip"
+
+  depends_on = [null_resource.lambda_dependencies]
 }
 
 # -----------------------------------------------------------------------------
@@ -249,65 +269,8 @@ resource "aws_sns_topic_policy" "data_ready_sns_policy" {
 }
 
 # -----------------------------------------------------------------------------
-# AWS GLUE CRAWLER (AUTOMATIC SCHEMA EVOLUTION & PARTITION DISCOVERY)
+# AWS GLUE CRAWLER REMOVED
 # -----------------------------------------------------------------------------
-
-# IAM Role for AWS Glue Crawler execution
-resource "aws_iam_role" "glue_crawler_role" {
-  name = "fx-glue-crawler-role-${var.environment}"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = { Service = "glue.amazonaws.com" }
-    }]
-  })
-}
-
-# Attach standard AWS policy for Glue Service execution
-resource "aws_iam_role_policy_attachment" "glue_service_attach" {
-  role       = aws_iam_role.glue_crawler_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
-}
-
-# Attach read access policy to raw S3 bucket for the crawler
-resource "aws_iam_policy" "glue_s3_read_policy" {
-  name        = "fx-glue-s3-read-${var.environment}"
-  description = "Allows Glue Crawler to read raw partitioned S3 data"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = ["s3:GetObject", "s3:ListBucket"]
-      Resource = [
-        aws_s3_bucket.fx_raw_data.arn,
-        "${aws_s3_bucket.fx_raw_data.arn}/*"
-      ]
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "glue_s3_read_attach" {
-  role       = aws_iam_role.glue_crawler_role.name
-  policy_arn = aws_iam_policy.glue_s3_read_policy.arn
-}
-
-# AWS Glue Crawler to scan raw partitioned folder and update schema catalogs automatically
-resource "aws_glue_crawler" "fx_raw_crawler" {
-  database_name = aws_glue_catalog_database.fx_database.name
-  name          = "fx-raw-data-crawler-${var.environment}"
-  role          = aws_iam_role.glue_crawler_role.arn
-
-  s3_target {
-    path = "s3://${aws_s3_bucket.fx_raw_data.id}/raw"
-  }
-
-  # Configures Crawler behaviour on Schema Changes to handle additions gracefully (Schema Evolution)
-  schema_change_policy {
-    delete_behavior = "LOG"
-    update_behavior = "UPDATE_IN_DATABASE"
-  }
-}
+# The Glue Crawler has been removed to avoid conflicts with the manual DDL
+# table definition in queries/athena_queries.sql. The raw_fx_rates table
+# is now managed exclusively through manual DDL and MSCK REPAIR TABLE commands.

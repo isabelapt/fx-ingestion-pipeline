@@ -34,12 +34,12 @@ class IngestFXRatesUseCase:
         # Convert observation_date if passed as string/other format in API/tests
         """
         Ingest FX rates for a base currency and persist the resulting entity.
-        
+
         Parameters:
             base_currency (str): Currency used as the base for the retrieved rates.
             observation_date (Optional[date]): Date associated with the rates; ISO-formatted
                 strings are converted to dates.
-        
+
         Returns:
             IngestionResult: The ingested FX rate entity, its storage path, and ingestion
                 status metadata.
@@ -61,16 +61,37 @@ class IngestFXRatesUseCase:
         )
 
         # 3. Check for Business Rules / Anomaly Detection
-        # Regra de negócio simples para anomalia
         is_anomaly = False
 
-        # 4. Persist to partitioned S3 bucket passing the entity
+        # Fetch previous day's data to detect anomalies
+        try:
+            from datetime import timedelta
+            previous_date = fx_entity.observation_date - timedelta(days=1)
+            previous_data = self.api_client.fetch_rates(
+                base_currency=base_currency, observation_date=previous_date
+            )
+
+            # Check for anomalies in any currency rate
+            for currency, current_rate in fx_entity.rates.items():
+                if currency in previous_data.rates:
+                    previous_rate = previous_data.rates[currency]
+                    if BusinessRules.is_anomaly_rate(previous_rate, current_rate):
+                        is_anomaly = True
+                        break
+        except Exception:
+            # If we can't fetch historical data, proceed without anomaly detection
+            pass
+
+        # 4. Apply quarantine policy: quarantine if anomaly is detected
+        quarantined = is_anomaly
+
+        # 5. Persist to partitioned S3 bucket passing the entity
         s3_path = self.s3_repository.save_raw_rate(fx_entity)
 
-        # 5. Construct and return IngestionResult DTO
+        # 6. Construct and return IngestionResult DTO
         return IngestionResult(
             entity=fx_entity,
             s3_path=s3_path,
             is_anomaly=is_anomaly,
-            quarantined=False,
+            quarantined=quarantined,
         )
