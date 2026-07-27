@@ -239,6 +239,11 @@ resource "aws_sns_topic_policy" "data_ready_sns_policy" {
       Principal = { Service = "events.amazonaws.com" }
       Action    = "sns:Publish"
       Resource  = aws_sns_topic.data_ready_alerts.arn
+      Condition = {
+        ArnEquals = {
+          "aws:SourceArn" = aws_cloudwatch_event_rule.s3_raw_upload_rule.arn
+        }
+      }
     }]
   })
 }
