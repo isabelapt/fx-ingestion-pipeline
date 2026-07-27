@@ -89,6 +89,10 @@ jobs:
           PADDED_JWT=$(echo -n "$RAW_JWT" | awk '{ if (length($0) % 4 == 2) print $0"=="; else if (length($0) % 4 == 3) print $0"="; else print $0 }')
           echo "$PADDED_JWT" | base64 -d | jq || echo "Could not decode or parse OIDC token"
 
+      - name: Validate required CI variables
+        run: |
+          test -n "${{ vars.AWS_ROLE_ARN }}" || { echo "AWS_ROLE_ARN is not set"; exit 1; }
+
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -97,7 +101,13 @@ jobs:
           audience: "sts.amazonaws.com"
 
       - name: Terraform Apply
+        env:
+          TF_IN_AUTOMATION: true
         run: |
+          set -euo pipefail
           cd infra/terraform
-          terraform init
-          terraform apply -auto-approve
+          terraform version
+          terraform init -input=false -upgrade
+          terraform validate
+          terraform plan -input=false -out=tfplan
+          terraform apply -input=false -auto-approve tfplan
