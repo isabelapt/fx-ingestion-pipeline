@@ -21,53 +21,51 @@ provider "aws" {
 }
 
 # S3 Bucket for raw data persistence
-resource "aws_s3_bucket" "fx_raw_data" {
+data "aws_s3_bucket" "fx_raw_data" {
   bucket = "${var.bucket_prefix}-${var.environment}"
-
-  force_destroy = var.environment == "dev" || var.environment == "staging" ? true : var.force_destroy
 }
 
-# SSE-S3 Encryption Configuration
-resource "aws_s3_bucket_server_side_encryption_configuration" "fx_raw_data_crypto" {
-  bucket = aws_s3_bucket.fx_raw_data.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-# Public Access Block Configuration
-resource "aws_s3_bucket_public_access_block" "fx_raw_data_public_block" {
-  bucket = aws_s3_bucket.fx_raw_data.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-# S3 Lifecycle Configuration for Data Retention and Cost Optimization
-resource "aws_s3_bucket_lifecycle_configuration" "fx_raw_data_lifecycle" {
-  bucket = aws_s3_bucket.fx_raw_data.id
-
-  rule {
-    id     = "archive-and-cleanup"
-    status = "Enabled"
-
-    filter {}
-
-    transition {
-      days          = 90
-      storage_class = "GLACIER"
-    }
-
-    expiration {
-      days = 365
-    }
-  }
-}
+# # SSE-S3 Encryption Configuration
+# resource "aws_s3_bucket_server_side_encryption_configuration" "fx_raw_data_crypto" {
+#   bucket = data.aws_s3_bucket.fx_raw_data.id
+# 
+#   rule {
+#     apply_server_side_encryption_by_default {
+#       sse_algorithm = "AES256"
+#     }
+#   }
+# }
+# 
+# # Public Access Block Configuration
+# resource "aws_s3_bucket_public_access_block" "fx_raw_data_public_block" {
+#   bucket = data.aws_s3_bucket.fx_raw_data.id
+# 
+#   block_public_acls       = true
+#   block_public_policy     = true
+#   ignore_public_acls      = true
+#   restrict_public_buckets = true
+# }
+# 
+# # S3 Lifecycle Configuration for Data Retention and Cost Optimization
+# resource "aws_s3_bucket_lifecycle_configuration" "fx_raw_data_lifecycle" {
+#   bucket = data.aws_s3_bucket.fx_raw_data.id
+# 
+#   rule {
+#     id     = "archive-and-cleanup"
+#     status = "Enabled"
+# 
+#     filter {}
+# 
+#     transition {
+#       days          = 90
+#       storage_class = "GLACIER"
+#     }
+# 
+#     expiration {
+#       days = 365
+#     }
+#   }
+# }
 
 
 # -----------------------------------------------------------------------------
@@ -103,8 +101,8 @@ resource "aws_iam_policy" "lambda_s3_policy" {
       Effect = "Allow"
       Action = ["s3:PutObject", "s3:GetObject", "s3:ListBucket"]
       Resource = [
-        aws_s3_bucket.fx_raw_data.arn,
-        "${aws_s3_bucket.fx_raw_data.arn}/*"
+        data.aws_s3_bucket.fx_raw_data.arn,
+        "${data.aws_s3_bucket.fx_raw_data.arn}/*"
       ]
     }]
   })
@@ -159,7 +157,7 @@ resource "aws_lambda_function" "fx_ingestor" {
   environment {
     variables = {
       ENVIRONMENT    = var.environment
-      S3_BUCKET_NAME = aws_s3_bucket.fx_raw_data.id
+      S3_BUCKET_NAME = data.aws_s3_bucket.fx_raw_data.id
     }
   }
 }
@@ -232,7 +230,7 @@ resource "aws_glue_catalog_database" "fx_database" {
 
 # Enable S3 Event notification flow to default EventBridge bus
 resource "aws_s3_bucket_notification" "bucket_notification" {
-  bucket      = aws_s3_bucket.fx_raw_data.id
+  bucket      = data.aws_s3_bucket.fx_raw_data.id
   eventbridge = true
 }
 
@@ -251,7 +249,7 @@ resource "aws_cloudwatch_event_rule" "s3_raw_upload_rule" {
     detail-type = ["Object Created"]
     detail = {
       bucket = {
-        name = [aws_s3_bucket.fx_raw_data.id]
+        name = [data.aws_s3_bucket.fx_raw_data.id]
       }
       object = {
         key = [{
