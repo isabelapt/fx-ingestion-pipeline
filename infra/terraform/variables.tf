@@ -12,7 +12,7 @@ variable "environment" {
 
 variable "bucket_prefix" {
   type        = string
-  default     = "fx-ingestion-raw-data-isabela-ipt"
+  default     = "fx-ingestion-raw-data-dev"
   description = "Prefixo do nome do Bucket S3"
 }
 
