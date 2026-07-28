@@ -55,7 +55,6 @@ jobs:
   deploy-infrastructure:
     name: Provision AWS S3 via Terraform (OIDC)
     needs: [python-tests, terraform-checks]
-    # Executa o deploy SOMENTE se for um push direto na main (pós-merge de PR)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -84,7 +83,6 @@ jobs:
           TOKEN=$(curl -s \
             -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" | jq -r '.value')
-          # Add base64 padding to avoid base64 command erroring
           RAW_JWT=$(echo "$TOKEN" | cut -d "." -f2)
           PADDED_JWT=$(echo -n "$RAW_JWT" | awk '{ if (length($0) % 4 == 2) print $0"=="; else if (length($0) % 4 == 3) print $0"="; else print $0 }')
           echo "$PADDED_JWT" | base64 -d | jq || echo "Could not decode or parse OIDC token"
@@ -100,9 +98,14 @@ jobs:
           aws-region: "us-east-1"
           audience: "sts.amazonaws.com"
 
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
       - name: Terraform Apply
         env:
           TF_IN_AUTOMATION: true
+          TF_LOG: INFO
+          TF_LOG_PATH: terraform.log
         run: |
           set -euo pipefail
           cd infra/terraform
@@ -110,4 +113,8 @@ jobs:
           terraform init -input=false -upgrade
           terraform validate
           terraform plan -input=false -out=tfplan
-          terraform apply -input=false -auto-approve tfplan
+          terraform apply -input=false -auto-approve tfplan || {
+            echo "Terraform apply failed. Last 200 lines of terraform.log:"
+            tail -n 200 terraform.log || true
+            exit 1
+          }
