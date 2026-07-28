@@ -104,6 +104,8 @@ jobs:
       - name: Terraform Apply
         env:
           TF_IN_AUTOMATION: true
+          TF_LOG: INFO
+          TF_LOG_PATH: terraform.log
         run: |
           set -euo pipefail
           cd infra/terraform
@@ -111,4 +113,8 @@ jobs:
           terraform init -input=false -upgrade
           terraform validate
           terraform plan -input=false -out=tfplan
-          terraform apply -input=false -auto-approve tfplan
+          terraform apply -input=false -auto-approve tfplan || {
+            echo "Terraform apply failed. Last 200 lines of terraform.log:"
+            tail -n 200 terraform.log || true
+            exit 1
+          }
