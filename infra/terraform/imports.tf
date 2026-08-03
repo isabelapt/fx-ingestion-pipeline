@@ -37,3 +37,8 @@ import {
   to = aws_cloudwatch_event_rule.s3_raw_upload_rule
   id = "fx-s3-raw-upload-rule-dev"
 }
+
+import {
+  to = aws_lambda_function.fx_ingestor
+  id = "fx-rate-ingestor-dev"
+}
