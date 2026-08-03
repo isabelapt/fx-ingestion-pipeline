@@ -1,73 +1,3 @@
-terraform {
-  required_version = ">= 1.5.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = var.aws_region
-
-  default_tags {
-    tags = {
-      Project     = "fx-ingestion-pipeline"
-      Environment = var.environment
-      ManagedBy   = "Terraform"
-    }
-  }
-}
-
-# S3 Bucket for raw data persistence
-data "aws_s3_bucket" "fx_raw_data" {
-  bucket = "${var.bucket_prefix}-${var.environment}"
-}
-
-# # SSE-S3 Encryption Configuration
-# resource "aws_s3_bucket_server_side_encryption_configuration" "fx_raw_data_crypto" {
-#   bucket = data.aws_s3_bucket.fx_raw_data.id
-# 
-#   rule {
-#     apply_server_side_encryption_by_default {
-#       sse_algorithm = "AES256"
-#     }
-#   }
-# }
-# 
-# # Public Access Block Configuration
-# resource "aws_s3_bucket_public_access_block" "fx_raw_data_public_block" {
-#   bucket = data.aws_s3_bucket.fx_raw_data.id
-# 
-#   block_public_acls       = true
-#   block_public_policy     = true
-#   ignore_public_acls      = true
-#   restrict_public_buckets = true
-# }
-# 
-# # S3 Lifecycle Configuration for Data Retention and Cost Optimization
-# resource "aws_s3_bucket_lifecycle_configuration" "fx_raw_data_lifecycle" {
-#   bucket = data.aws_s3_bucket.fx_raw_data.id
-# 
-#   rule {
-#     id     = "archive-and-cleanup"
-#     status = "Enabled"
-# 
-#     filter {}
-# 
-#     transition {
-#       days          = 90
-#       storage_class = "GLACIER"
-#     }
-# 
-#     expiration {
-#       days = 365
-#     }
-#   }
-# }
-
-
 # -----------------------------------------------------------------------------
 # IAM ROLE & POLICIES FOR AWS LAMBDA
 # -----------------------------------------------------------------------------
@@ -228,11 +158,7 @@ resource "aws_glue_catalog_database" "fx_database" {
 # INGESTION COMPLETE NOTIFICATION (EVENT-DRIVEN PATTERN)
 # -----------------------------------------------------------------------------
 
-# Enable S3 Event notification flow to default EventBridge bus
-resource "aws_s3_bucket_notification" "bucket_notification" {
-  bucket      = data.aws_s3_bucket.fx_raw_data.id
-  eventbridge = true
-}
+
 
 # SNS Topic to alert downstream analytics consumers that ingestion is finished
 resource "aws_sns_topic" "data_ready_alerts" {
@@ -280,7 +206,7 @@ resource "aws_sns_topic_policy" "data_ready_sns_policy" {
       Resource  = aws_sns_topic.data_ready_alerts.arn
       Condition = {
         ArnEquals = {
-          "aws:SourceArn" = aws_cloudwatch_event_rule.s3_raw_upload_rule.arn
+          ("aws:SourceArn") = aws_cloudwatch_event_rule.s3_raw_upload_rule.arn
         }
       }
     }]
