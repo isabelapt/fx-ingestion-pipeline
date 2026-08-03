@@ -16,10 +16,11 @@ Terraform works by comparing the local configuration against the real resources 
 | :--- | :--- | :--- | :--- |
 | **S3** | Read / Write | `s3:CreateBucket`, `s3:ListBucket`, `s3:GetBucketNotification`, `s3:PutBucketNotification` | To read/write the Terraform state file in the remote backend and configure EventBridge notifications on the raw data bucket. |
 | **IAM** | Manage Lambda Role | `iam:CreateRole`, `iam:GetRole`, `iam:DeleteRole`, `iam:PassRole`, `iam:ListRolePolicies`, `iam:ListAttachedRolePolicies`, `iam:GetRolePolicy`, `iam:PutRolePolicy`, `iam:DeleteRolePolicy` | To create and manage the execution role for the Lambda function and attach policy bindings. |
-| **Lambda** | Function Management | `lambda:CreateFunction`, `lambda:GetFunction`, `lambda:DeleteFunction`, `lambda:UpdateFunctionCode`, `lambda:UpdateFunctionConfiguration`, `lambda:AddPermission`, `lambda:RemovePermission`, `lambda:TagResource`, `lambda:ListVersionsByFunction` | To deploy the ingestion Lambda ZIP package, configure environment variables, tag the resource, list versions, and allow EventBridge invocation. |
+| **Lambda** | Function Management | `lambda:CreateFunction`, `lambda:GetFunction`, `lambda:DeleteFunction`, `lambda:UpdateFunctionCode`, `lambda:UpdateFunctionConfiguration`, `lambda:AddPermission`, `lambda:RemovePermission`, `lambda:TagResource`, `lambda:ListVersionsByFunction`, `lambda:GetFunctionEventInvokeConfig`, `lambda:PutFunctionEventInvokeConfig` | To deploy the ingestion Lambda ZIP package, configure environment variables, tag the resource, list versions, configure async retries, and allow EventBridge invocation. |
 | **EventBridge** | Rule & Target Management | `events:PutRule`, `events:DescribeRule`, `events:DeleteRule`, `events:PutTargets`, `events:RemoveTargets`, `events:ListTargetsByRule` | To capture S3 upload events and schedule the daily CRON trigger, routing them to SNS/Lambda. |
 | **SNS** | Alerting | `sns:CreateTopic`, `sns:GetTopicAttributes`, `sns:SetTopicAttributes`, `sns:DeleteTopic`, `sns:Publish` | To configure alerting channels for successful ingestions and failure alarms. |
 | **Glue** | Data Catalog | `glue:CreateDatabase`, `glue:GetDatabase`, `glue:DeleteDatabase`, `glue:TagResource`, `glue:GetTags` | To catalog the raw S3 partitions so Athena can query exchange rates. |
+| **CloudWatch** | Alarms & Monitoring | `cloudwatch:PutMetricAlarm`, `cloudwatch:DescribeAlarms`, `cloudwatch:DeleteAlarms` | To create and manage the error metric alarms for the Lambda function. |
 
 ### Minimal Inline Policy JSON for Deployment Role
 
@@ -35,6 +36,7 @@ Terraform works by comparing the local configuration against the real resources 
         "events:*",
         "sns:*",
         "glue:*",
+        "cloudwatch:*",
         "iam:CreateRole",
         "iam:GetRole",
         "iam:DeleteRole",
