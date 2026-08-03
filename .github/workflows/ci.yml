@@ -45,11 +45,15 @@ jobs:
         with:
           terraform_version: "1.5.7"
 
+      - name: Terraform Fmt
+        run: |
+          cd infra/terraform
+          terraform fmt -check -diff -recursive
+
       - name: Terraform Init & Validate
         run: |
           cd infra/terraform
-          terraform init -backend=false
-          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
           terraform validate
 
   deploy-infrastructure:

@@ -1,6 +1,6 @@
 # S3 Bucket for raw data persistence
 data "aws_s3_bucket" "fx_raw_data" {
-  bucket = "${var.bucket_prefix}-${var.environment}"
+  bucket = local.bucket_name
 }
 
 # # SSE-S3 Encryption Configuration

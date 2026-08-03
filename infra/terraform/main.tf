@@ -2,7 +2,7 @@
 # IAM ROLE & POLICIES FOR AWS LAMBDA
 # -----------------------------------------------------------------------------
 resource "aws_iam_role" "lambda_exec_role" {
-  name = "fx-ingestion-lambda-role-${var.environment}"
+  name = local.lambda_role_name
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -22,7 +22,7 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 
 # Least-privilege policy allowing Lambda to write only to our S3 Bucket
 resource "aws_iam_policy" "lambda_s3_policy" {
-  name        = "fx-lambda-s3-write-${var.environment}"
+  name        = local.lambda_s3_policy_name
   description = "Allows Lambda to write raw FX rate payloads into S3 bucket"
 
   policy = jsonencode({
@@ -77,7 +77,7 @@ data "archive_file" "lambda_zip" {
 # -----------------------------------------------------------------------------
 resource "aws_lambda_function" "fx_ingestor" {
   filename         = data.archive_file.lambda_zip.output_path
-  function_name    = "fx-rate-ingestor-${var.environment}"
+  function_name    = local.lambda_function_name
   role             = aws_iam_role.lambda_exec_role.arn
   handler          = "adapters.lambda_handler.lambda_handler"
   runtime          = "python3.12"
@@ -96,7 +96,7 @@ resource "aws_lambda_function" "fx_ingestor" {
 # AWS EVENTBRIDGE (DAILY CRON TRIGGER)
 # -----------------------------------------------------------------------------
 resource "aws_cloudwatch_event_rule" "daily_trigger" {
-  name                = "fx-ingestion-daily-cron-${var.environment}"
+  name                = local.daily_trigger_rule_name
   description         = "Triggers daily FX rate ingestion at 08:00 AM UTC"
   schedule_expression = var.cron_schedule
 }
@@ -127,11 +127,11 @@ resource "aws_lambda_function_event_invoke_config" "fx_ingestor_async_config" {
 # NOTIFICATIONS & FAILURE ALARMS (SNS & CLOUDWATCH)
 # -----------------------------------------------------------------------------
 resource "aws_sns_topic" "data_team_alerts" {
-  name = "fx-ingestion-alerts-topic-${var.environment}"
+  name = local.sns_data_team_alerts_topic_name
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
-  alarm_name          = "fx-ingestor-error-alarm-${var.environment}"
+  alarm_name          = local.lambda_error_alarm_name
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = 1
   metric_name         = "Errors"
@@ -151,7 +151,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
 # AWS GLUE DATABASE (DATA CATALOG FOR AMAZON ATHENA)
 # -----------------------------------------------------------------------------
 resource "aws_glue_catalog_database" "fx_database" {
-  name = "fx_rates_db_${var.environment}"
+  name = local.glue_database_name
 }
 
 # -----------------------------------------------------------------------------
@@ -162,12 +162,12 @@ resource "aws_glue_catalog_database" "fx_database" {
 
 # SNS Topic to alert downstream analytics consumers that ingestion is finished
 resource "aws_sns_topic" "data_ready_alerts" {
-  name = "fx-ingestion-data-ready-topic-${var.environment}"
+  name = local.sns_alerts_topic_name
 }
 
 # EventBridge rule to intercept Object Created (PutObject) events under raw/ prefix
 resource "aws_cloudwatch_event_rule" "s3_raw_upload_rule" {
-  name        = "fx-s3-raw-upload-rule-${var.environment}"
+  name        = local.event_rule_name
   description = "Triggered when a new FX rate raw file is uploaded under raw/ partition in S3."
 
   event_pattern = jsonencode({
