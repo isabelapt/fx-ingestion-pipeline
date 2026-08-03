@@ -57,9 +57,9 @@ resource "null_resource" "lambda_dependencies" {
   provisioner "local-exec" {
     command = <<-EOT
       rm -rf ${path.module}/lambda_staging
-      mkdir -p ${path.module}/lambda_staging
+      mkdir -p ${path.module}/lambda_staging/src
       pip install --target ${path.module}/lambda_staging httpx pydantic
-      cp -r ${path.module}/../../src/* ${path.module}/lambda_staging/
+      cp -r ${path.module}/../../src/* ${path.module}/lambda_staging/src/
     EOT
   }
 }
@@ -79,7 +79,7 @@ resource "aws_lambda_function" "fx_ingestor" {
   filename         = data.archive_file.lambda_zip.output_path
   function_name    = local.lambda_function_name
   role             = aws_iam_role.lambda_exec_role.arn
-  handler          = "adapters.lambda_handler.lambda_handler"
+  handler          = "src.adapters.lambda_handler.lambda_handler"
   runtime          = "python3.12"
   timeout          = var.lambda_timeout
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
