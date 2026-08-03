@@ -1,3 +1,5 @@
+# Declaração das entradas (parâmetros da linha de comando ou .tfvars)
+
 variable "aws_region" {
   type        = string
   default     = "us-east-1"

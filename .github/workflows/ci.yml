@@ -43,13 +43,17 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.5.0"
+          terraform_version: "1.5.7"
+
+      - name: Terraform Fmt
+        run: |
+          cd infra/terraform
+          terraform fmt -check -diff -recursive
 
       - name: Terraform Init & Validate
         run: |
           cd infra/terraform
-          terraform init -backend=false
-          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false
           terraform validate
 
   deploy-infrastructure:
@@ -70,7 +74,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.5.0"
+          terraform_version: "1.5.7"
 
       - name: Debug GitHub Context
         run: |
@@ -101,7 +105,7 @@ jobs:
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
-      - name: Terraform Apply
+      - name: Terraform Plan
         env:
           TF_IN_AUTOMATION: true
           TF_LOG: INFO
@@ -113,6 +117,14 @@ jobs:
           terraform init -input=false -upgrade
           terraform validate
           terraform plan -input=false -out=tfplan
+
+      - name: Terraform Apply
+        env:
+          TF_IN_AUTOMATION: true
+          TF_LOG: INFO
+          TF_LOG_PATH: terraform.log
+        run: |
+          cd infra/terraform
           terraform apply -input=false -auto-approve tfplan
 
       - name: Upload Terraform Log on Failure
