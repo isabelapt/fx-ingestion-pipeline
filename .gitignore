@@ -20,3 +20,7 @@ htmlcov/
 **/infra/terraform/.terraform.lock.hcl
 *.tfstate
 *.tfstate.backup
+
+# Tool and Linter configurations/artifacts
+.trunk/
+.qodo/

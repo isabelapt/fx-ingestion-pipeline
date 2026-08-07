@@ -108,7 +108,7 @@ resource "aws_cloudwatch_event_target" "lambda_target" {
 }
 
 resource "aws_lambda_permission" "allow_eventbridge" {
-  statement_id  = "AllowExecutionFromEventBridgeDev"
+  statement_id  = "AllowEventBridgeDailyTrigger"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.fx_ingestor.function_name
   principal     = "events.amazonaws.com"
@@ -128,6 +128,13 @@ resource "aws_lambda_function_event_invoke_config" "fx_ingestor_async_config" {
 # -----------------------------------------------------------------------------
 resource "aws_sns_topic" "data_team_alerts" {
   name = local.sns_data_team_alerts_topic_name
+}
+
+resource "aws_sns_topic_subscription" "data_team_email_subscription" {
+  count     = var.alert_email != "" ? 1 : 0
+  topic_arn = aws_sns_topic.data_team_alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
