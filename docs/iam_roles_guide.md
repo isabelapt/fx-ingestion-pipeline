@@ -68,7 +68,7 @@ Terraform works by comparing the local configuration against the real resources 
 				"lambda:PutFunctionEventInvokeConfig",
 				"lambda:GetFunctionEventInvokeConfig"
 			],
-			"Resource": "arn:aws:lambda:us-east-1:230850604130:function:fx-rate-ingestor-dev"
+			"Resource": "arn:aws:lambda:us-east-1:123456789012:function:fx-rate-ingestor-dev"
 		},
 		{
 			"Sid": "CloudWatchAlarmsAccess",
@@ -77,7 +77,7 @@ Terraform works by comparing the local configuration against the real resources 
 				"cloudwatch:PutMetricAlarm",
 				"cloudwatch:DeleteAlarms"
 			],
-			"Resource": "arn:aws:cloudwatch:us-east-1:230850604130:alarm:fx-ingestor-error-alarm-dev"
+			"Resource": "arn:aws:cloudwatch:us-east-1:123456789012:alarm:fx-ingestor-error-alarm-dev"
 		},
 		{
 			"Sid": "CloudWatchDescribeAlarms",
@@ -101,8 +101,8 @@ Terraform works by comparing the local configuration against the real resources 
 				"events:TagResource"
 			],
 			"Resource": [
-				"arn:aws:events:us-east-1:230850604130:rule/fx-ingestion-daily-cron-dev",
-				"arn:aws:events:us-east-1:230850604130:rule/fx-s3-raw-upload-rule-dev"
+				"arn:aws:events:us-east-1:123456789012:rule/fx-ingestion-daily-cron-dev",
+				"arn:aws:events:us-east-1:123456789012:rule/fx-s3-raw-upload-rule-dev"
 			]
 		},
 		{
@@ -117,8 +117,8 @@ Terraform works by comparing the local configuration against the real resources 
 				"sns:TagResource"
 			],
 			"Resource": [
-				"arn:aws:sns:us-east-1:230850604130:fx-ingestion-alerts-topic-dev",
-				"arn:aws:sns:us-east-1:230850604130:fx-ingestion-data-ready-topic-dev"
+				"arn:aws:sns:us-east-1:123456789012:fx-ingestion-alerts-topic-dev",
+				"arn:aws:sns:us-east-1:123456789012:fx-ingestion-data-ready-topic-dev"
 			]
 		},
 		{
@@ -133,8 +133,8 @@ Terraform works by comparing the local configuration against the real resources 
 				"glue:GetTags"
 			],
 			"Resource": [
-				"arn:aws:glue:us-east-1:230850604130:catalog",
-				"arn:aws:glue:us-east-1:230850604130:database/fx_rates_db_dev"
+				"arn:aws:glue:us-east-1:123456789012:catalog",
+				"arn:aws:glue:us-east-1:123456789012:database/fx_rates_db_dev"
 			]
 		},
 		{
@@ -151,7 +151,7 @@ Terraform works by comparing the local configuration against the real resources 
 				"iam:ListRolePolicies",
 				"iam:ListAttachedRolePolicies"
 			],
-			"Resource": "arn:aws:iam::230850604130:role/fx-ingestion-lambda-role-dev"
+			"Resource": "arn:aws:iam::123456789012:role/fx-ingestion-lambda-role-dev"
 		},
 		{
 			"Sid": "IAMPolicyAccess",
@@ -166,47 +166,47 @@ Terraform works by comparing the local configuration against the real resources 
 				"iam:GetPolicyVersion",
 				"iam:TagPolicy"
 			],
-			"Resource": "arn:aws:iam::230850604130:policy/fx-lambda-s3-write-dev"
+			"Resource": "arn:aws:iam::123456789012:policy/fx-lambda-s3-write-dev"
 		}
 	]
 }
 ```
 
-### Explicação Detalhada de cada Ação por Serviço
+### Detailed Explanation of Each Action by Service
 
-#### 🪣 Serviço: S3 (Resource: `fx-ingestion-raw-data-dev`)
-* `s3:CreateBucket` / `s3:DeleteBucket`: Permite ao Terraform provisionar e remover o bucket do Data Lake.
-* `s3:ListBucket` / `s3:GetBucketLocation`: Permite ao Terraform verificar se o bucket existe e em qual região geográfica ele reside.
-* `s3:PutEncryptionConfiguration` / `s3:GetEncryptionConfiguration`: Garante a criptografia em repouso dos dados no bucket.
-* `s3:PutBucketPublicAccessBlock` / `s3:GetBucketPublicAccessBlock`: Habilita o bloqueio total contra acesso público não autorizado.
-* `s3:PutBucketNotification` / `s3:GetBucketNotification`: Configura as notificações nativas no bucket para acionar o fluxo de mensagens.
+#### 🪣 Service: S3 (Resource: `fx-ingestion-raw-data-dev`)
+* `s3:CreateBucket` / `s3:DeleteBucket`: Allows Terraform to provision and destroy the Data Lake storage bucket.
+* `s3:ListBucket` / `s3:GetBucketLocation`: Allows Terraform to verify bucket existence and determine its geographical region.
+* `s3:PutEncryptionConfiguration` / `s3:GetEncryptionConfiguration`: Enforces server-side encryption at rest for bucket data.
+* `s3:PutBucketPublicAccessBlock` / `s3:GetBucketPublicAccessBlock`: Blocks all public write/read permissions to prevent data exposure.
+* `s3:PutBucketNotification` / `s3:GetBucketNotification`: Configures native EventBridge integration notifications on S3 object creation.
 
-#### ⚡ Serviço: Lambda (Resource: `fx-rate-ingestor-dev`)
-* `lambda:CreateFunction` / `lambda:DeleteFunction`: Cria e deleta o código/ambiente da Lambda de ingestão.
-* `lambda:UpdateFunctionCode` / `lambda:UpdateFunctionConfiguration`: Faz upload do novo pacote ZIP e atualiza variáveis de ambiente.
-* `lambda:AddPermission` / `lambda:RemovePermission`: Permite associar gatilhos externos à Lambda (como regras cron do EventBridge).
-* `lambda:GetFunctionCodeSigningConfig` / `lambda:ListVersionsByFunction`: Utilizados pelo provider Terraform para controle de versões e integridade.
-* `lambda:PutFunctionEventInvokeConfig` / `lambda:GetFunctionEventInvokeConfig`: Configura a política de retry assíncrono (quantas tentativas fazer antes de desistir).
+#### ⚡ Service: Lambda (Resource: `fx-rate-ingestor-dev`)
+* `lambda:CreateFunction` / `lambda:DeleteFunction`: Creates and deletes the runtime environment and properties of the ingestion function.
+* `lambda:UpdateFunctionCode` / `lambda:UpdateFunctionConfiguration`: Deploys new ZIP builds and updates environment variables.
+* `lambda:AddPermission` / `lambda:RemovePermission`: Allows associating external trigger permissions (like EventBridge rules) to the function.
+* `lambda:GetFunctionCodeSigningConfig` / `lambda:ListVersionsByFunction`: Utilized by Terraform for codebase verification and lifecycle management.
+* `lambda:PutFunctionEventInvokeConfig` / `lambda:GetFunctionEventInvokeConfig`: Configures asynchronous execution settings (number of retry attempts).
 
-#### 🚨 Serviço: CloudWatch Alarms (Resource: `fx-ingestor-error-alarm-dev`)
-* `cloudwatch:PutMetricAlarm` / `cloudwatch:DeleteAlarms`: Cria e destrói o alarme de erros da Lambda.
-* `cloudwatch:DescribeAlarms` (Resource: `*`): Lista os alarmes existentes na conta durante a execução do `terraform plan` (a AWS exige escopo global para essa leitura).
+#### 🚨 Service: CloudWatch Alarms (Resource: `fx-ingestor-error-alarm-dev`)
+* `cloudwatch:PutMetricAlarm` / `cloudwatch:DeleteAlarms`: Provisions and deletes the threshold metrics monitor.
+* `cloudwatch:DescribeAlarms` (Resource: `*`): Inspects existing alarms during `terraform plan` execution (AWS requires global scope `*` for this read action).
 
-#### 📨 Serviço: EventBridge Rules (Resource: `fx-ingestion-daily-cron-dev` e `fx-s3-raw-upload-rule-dev`)
-* `events:PutRule` / `events:DeleteRule` / `events:DescribeRule`: Cria, atualiza e deleta as regras de gatilho (cron e escuta do S3).
-* `events:PutTargets` / `events:RemoveTargets` / `events:ListTargetsByRule`: Mapeia quais recursos (Lambda, SNS) serão chamados quando as regras forem ativadas.
+#### 📨 Service: EventBridge Rules (Resource: `fx-ingestion-daily-cron-dev` and `fx-s3-raw-upload-rule-dev`)
+* `events:PutRule` / `events:DeleteRule` / `events:DescribeRule`: Creates, updates, and deletes event triggers (CRON schedule and S3 upload listeners).
+* `events:PutTargets` / `events:RemoveTargets` / `events:ListTargetsByRule`: Maps downstream targets (Lambda, SNS) to the event rules.
 
-#### 📣 Serviço: SNS (Resource: tópicos `fx-ingestion-alerts-topic-dev` e `fx-ingestion-data-ready-topic-dev`)
-* `sns:CreateTopic` / `sns:DeleteTopic`: Cria e deleta os canais de mensagens SNS.
-* `sns:SetTopicAttributes` / `sns:GetTopicAttributes`: Permite alterar configurações e políticas do tópico (como dar permissão para o CloudWatch/EventBridge publicarem dados nele).
+#### 📣 Service: SNS (Resource: topics `fx-ingestion-alerts-topic-dev` and `fx-ingestion-data-ready-topic-dev`)
+* `sns:CreateTopic` / `sns:DeleteTopic`: Creates and deletes SNS topics.
+* `sns:SetTopicAttributes` / `sns:GetTopicAttributes`: Allows updating topic access configurations (such as granting publish permissions to CloudWatch or EventBridge).
 
-#### 🗄️ Serviço: Glue Catalog (Resource: `catalog` e `fx_rates_db_dev`)
-* `glue:CreateDatabase` / `glue:GetDatabase` / `glue:UpdateDatabase` / `glue:DeleteDatabase`: Registra e mantém o banco de dados de metadados no Glue, permitindo consultas Athena sobre o bucket raw.
+#### 🗄️ Service: Glue Catalog (Resource: `catalog` and `fx_rates_db_dev`)
+* `glue:CreateDatabase` / `glue:GetDatabase` / `glue:UpdateDatabase` / `glue:DeleteDatabase`: Provisions and manages metadata databases in AWS Glue, allowing Athena to run SQL queries over the S3 bucket.
 
-#### 🔑 Serviço: IAM (Resource: role `fx-ingestion-lambda-role-dev` e policy `fx-lambda-s3-write-dev`)
-* `iam:CreateRole` / `iam:GetRole` / `iam:DeleteRole` / `iam:PassRole`: Gerencia o ciclo de vida da role de execução da Lambda e a repassa para que o serviço da Lambda a utilize.
-* `iam:AttachRolePolicy` / `iam:DetachRolePolicy`: Associa políticas de permissão (como permissão de escrita em S3) à role da Lambda.
-* `iam:CreatePolicy` / `iam:GetPolicy` / `iam:DeletePolicy` / `iam:CreatePolicyVersion`: Gerencia a política customizada específica que concede privilégios de S3 à Lambda.
+#### 🔑 Service: IAM (Resource: role `fx-ingestion-lambda-role-dev` and policy `fx-lambda-s3-write-dev`)
+* `iam:CreateRole` / `iam:GetRole` / `iam:DeleteRole` / `iam:PassRole`: Manages the lifecycle of the execution role and passes it to the Lambda service.
+* `iam:AttachRolePolicy` / `iam:DetachRolePolicy`: Associates or detaches policy documents (e.g. S3 write policy) to the Lambda role.
+* `iam:CreatePolicy` / `iam:GetPolicy` / `iam:DeletePolicy` / `iam:CreatePolicyVersion`: Configures custom permission documents that grant S3 write/read privileges to the Lambda.
 
 ---
 
@@ -259,7 +259,7 @@ resource "aws_iam_policy" "lambda_s3_policy" {
 
 ## 3. Infrastructure Architecture & Data Flows
 
-The following diagram illustrates how the AWS resources deployed by Terraform connect with each other, defining both the **Scheduled Ingestion Flow**, the **Error Handling Flow**, and the **Downstream Event Integration Flow**:
+The following diagram illustrates how the AWS resources deployed by Terraform connect with each other, defining the **Scheduled Ingestion Flow**, the **Error Handling Flow**, and the **Downstream Event Integration Flow**:
 
 ```mermaid
 flowchart TB
@@ -268,40 +268,40 @@ flowchart TB
     classDef client fill:#1A73E8,stroke:#0F9D58,stroke-width:2px,color:white;
     classDef external fill:#7A7A7A,stroke:#333333,stroke-width:2px,color:white;
     
-    subgraph Triggers ["Gatilhos & Eventos"]
+    subgraph Triggers ["Triggers & Events"]
         Cron["⏰ EventBridge Cron<br/>(daily_trigger)"]:::aws
         S3_Event["📨 EventBridge Rule<br/>(s3_raw_upload_rule)"]:::aws
     end
 
-    subgraph Computing ["Computação & Lógica"]
+    subgraph Computing ["Compute & Logic"]
         Lambda["⚡ AWS Lambda<br/>(fx-rate-ingestor-dev)"]:::aws
     end
 
-    subgraph StorageCatalog ["Armazenamento & Metadados"]
+    subgraph StorageCatalog ["Storage & Metadata"]
         S3["🪣 S3 Raw Bucket<br/>(fx-ingestion-raw-data-dev)"]:::aws
         Glue["🗄️ Glue Catalog Database<br/>(fx_rates_db_dev)"]:::aws
     end
 
-    subgraph Observers ["Monitoramento & Alertas"]
+    subgraph Observers ["Monitoring & Alerts"]
         Alarm["🚨 CloudWatch Metric Alarm<br/>(lambda_error_alarm)"]:::aws
         SNS_Alerts["📣 SNS Topic: Alerts<br/>(fx-ingestion-alerts-topic-dev)"]:::aws
         SNS_Ready["📣 SNS Topic: Data Ready<br/>(fx-ingestion-data-ready-topic-dev)"]:::aws
     end
 
     %% Flows
-    Cron -->|Gatilho Diário 08:00 UTC| Lambda
-    Lambda -->|1. Consome Taxas de Câmbio| API["🌐 Frankfurter API (External)"]:::external
-    Lambda -->|2. Salva Arquivo JSON Particionado| S3
+    Cron -->|Daily Trigger 08:00 UTC| Lambda
+    Lambda -->|1. Fetches Exchange Rates| API["🌐 Frankfurter API (External)"]:::external
+    Lambda -->|2. Saves Partitioned JSON File| S3
     
-    Lambda -.->|Gera Métricas de Errors >= 1| Alarm
-    Alarm -->|Alarme Ativo| SNS_Alerts
-    SNS_Alerts -->|Notificação Urgente| Ops["👥 Equipe de Operações (Data Team)"]:::client
+    Lambda -.->|Emits Error Metrics >= 1| Alarm
+    Alarm -->|Alarm Active| SNS_Alerts
+    SNS_Alerts -->|Urgent Notification| Ops["👥 Operations/Data Team"]:::client
 
-    S3 -->|3. Evento Object Created (via S3 Notification)| S3_Event
-    S3_Event -->|Publica Confirmação de Ingestão Concluída| SNS_Ready
-    SNS_Ready -->|Notificação de Dados Prontos| Consumers["💻 Consumidores Downstream (BI/Analytics)"]:::client
+    S3 -->|3. Object Created Event (via S3 Notification)| S3_Event
+    S3_Event -->|Publishes Ingestion Complete Event| SNS_Ready
+    SNS_Ready -->|Data Ready Notification| Consumers["💻 Downstream Consumers (BI/Analytics)"]:::client
 
-    S3 -.->|Partições Referenciadas por Metadados| Glue
+    S3 -.->|Partitions Referenced by Metadata| Glue
 ```
 
 ### Resource Catalog & Roles
@@ -330,4 +330,3 @@ flowchart TB
 8. **`aws_sns_topic.data_ready_alerts`**:
    * **Role**: Success publication channel.
    * **Behavior**: Notifies downstream analytics and databases that the day's ingestion is finished and ready for consumption.
-

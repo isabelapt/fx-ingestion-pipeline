@@ -41,3 +41,9 @@ variable "alert_email" {
   description = "E-mail de destino para alertas do pipeline (injetado em tempo de execução)"
   default     = ""
 }
+
+variable "aws_account_id" {
+  type        = string
+  description = "AWS Account ID used for importing resources and setting up ARNs"
+  default     = "230850604130"
+}

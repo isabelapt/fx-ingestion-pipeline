@@ -93,12 +93,12 @@ jobs:
 
       - name: Validate required CI variables
         run: |
-          test -n "${{ vars.AWS_ROLE_ARN }}" || { echo "AWS_ROLE_ARN is not set"; exit 1; }
+          test -n "${{ secrets.AWS_ROLE_ARN }}" || { echo "AWS_ROLE_ARN is not set"; exit 1; }
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: "us-east-1"
           audience: "sts.amazonaws.com"
 
@@ -111,6 +111,7 @@ jobs:
           TF_LOG: INFO
           TF_LOG_PATH: terraform.log
           TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+          TF_VAR_aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         run: |
           set -euo pipefail
           cd infra/terraform
