@@ -45,5 +45,5 @@ variable "alert_email" {
 variable "aws_account_id" {
   type        = string
   description = "AWS Account ID used for importing resources and setting up ARNs"
-  default     = "230850604130"
+  default     = ""
 }
