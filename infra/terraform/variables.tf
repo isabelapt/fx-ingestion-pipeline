@@ -35,3 +35,9 @@ variable "cron_schedule" {
   default     = "cron(0 8 * * ? *)"
   description = "Expressão de agendamento do EventBridge"
 }
+
+variable "alert_email" {
+  type        = string
+  description = "E-mail de destino para alertas do pipeline (injetado em tempo de execução)"
+  default     = ""
+}

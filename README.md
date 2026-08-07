@@ -1,102 +1,133 @@
-# FX Ingestion Pipeline: AWS IAM Roles & Permissions Guide
+# 💱 FX Rate Ingestion Pipeline & Data Lake
 
-This guide details the IAM Roles and permissions required to deploy and run the **FX Ingestion Pipeline** infrastructure using Terraform and GitHub Actions.
+[![CI/CD Pipeline](https://github.com/isabelapt/fx-ingestion-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/isabelapt/fx-ingestion-pipeline/actions)
+![Python Version](https://img.shields.io/badge/python-3.12-blue.svg)
+![Terraform](https://img.shields.io/badge/IaC-Terraform-purple.svg)
+![AWS](https://img.shields.io/badge/AWS-Serverless-orange.svg)
+![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
+
+An enterprise-grade, event-driven **Serverless Data Pipeline** designed to ingest daily Foreign Exchange (FX) rates from external financial APIs, validate data contracts, enforce domain rules, and persist partitioned raw payloads into an AWS S3 Data Lake exposed via **Amazon Athena**.
 
 ---
 
-## 1. Deployment Role: `GitHubActionsFXPipelineRole`
+## 📐 Architecture Overview
 
-This role is assumed by GitHub Actions via OIDC (`aws-actions/configure-aws-credentials`) to run Terraform (`terraform plan` and `terraform apply`).
+![AWS Serverless Architecture](docs/diagrams/fx_ingestion_architecture.png)
 
-### Required Permissions & Why They Are Necessary
+*For a detailed resource-by-resource explanation of the cloud components and Event-Driven flows, refer to the **[AWS Architecture Diagram Guide](docs/architecture_diagram.md)**.*
 
-Terraform works by comparing the local configuration against the real resources deployed in AWS. Therefore, this role requires permissions to **Create, Read (List/Get), Update, Delete, and Tag** all resources defined in our HCL files.
+### Key Technical Features:
 
-| Service | Action Categories | Specific Actions Required | Why It's Necessary |
-| :--- | :--- | :--- | :--- |
-| **S3** | Read / Write | `s3:CreateBucket`, `s3:ListBucket`, `s3:GetBucketNotification`, `s3:PutBucketNotification` | To read/write the Terraform state file in the remote backend and configure EventBridge notifications on the raw data bucket. |
-| **IAM** | Manage Lambda Role | `iam:CreateRole`, `iam:GetRole`, `iam:DeleteRole`, `iam:PassRole`, `iam:ListRolePolicies`, `iam:ListAttachedRolePolicies`, `iam:GetRolePolicy`, `iam:PutRolePolicy`, `iam:DeleteRolePolicy` | To create and manage the execution role for the Lambda function and attach policy bindings. |
-| **Lambda** | Function Management | `lambda:CreateFunction`, `lambda:GetFunction`, `lambda:DeleteFunction`, `lambda:UpdateFunctionCode`, `lambda:UpdateFunctionConfiguration`, `lambda:AddPermission`, `lambda:RemovePermission`, `lambda:TagResource`, `lambda:ListVersionsByFunction`, `lambda:GetFunctionEventInvokeConfig`, `lambda:PutFunctionEventInvokeConfig` | To deploy the ingestion Lambda ZIP package, configure environment variables, tag the resource, list versions, configure async retries, and allow EventBridge invocation. |
-| **EventBridge** | Rule & Target Management | `events:PutRule`, `events:DescribeRule`, `events:DeleteRule`, `events:PutTargets`, `events:RemoveTargets`, `events:ListTargetsByRule` | To capture S3 upload events and schedule the daily CRON trigger, routing them to SNS/Lambda. |
-| **SNS** | Alerting | `sns:CreateTopic`, `sns:GetTopicAttributes`, `sns:SetTopicAttributes`, `sns:DeleteTopic`, `sns:Publish` | To configure alerting channels for successful ingestions and failure alarms. |
-| **Glue** | Data Catalog | `glue:CreateDatabase`, `glue:GetDatabase`, `glue:DeleteDatabase`, `glue:TagResource`, `glue:GetTags` | To catalog the raw S3 partitions so Athena can query exchange rates. |
-| **CloudWatch** | Alarms & Monitoring | `cloudwatch:PutMetricAlarm`, `cloudwatch:DescribeAlarms`, `cloudwatch:DeleteAlarms` | To create and manage the error metric alarms for the Lambda function. |
+* **Clean Architecture & DDD:** Domain entities (`FXRateEntity`), value validation (`FXRateData` Pydantic schemas), and use-case orchestration decoupled from AWS SDKs (`boto3`).
+* **Infrastructure as Code (IaC):** 100% provisioned via **Terraform** using `config.yaml` as a single source of truth.
+* **Partitioned Data Lake:** Hive-style partition layout (`raw/year=YYYY/month=MM/day=DD/`) for query optimization and cost minimization on Amazon Athena.
+* **Automated CI/CD:** GitHub Actions workflow with OpenID Connect (OIDC) authentication for passwordless AWS deployment and strict 100% test coverage enforcement (`pytest` + `uv`).
 
-### Minimal Inline Policy JSON for Deployment Role
+---
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:*",
-        "lambda:*",
-        "events:*",
-        "sns:*",
-        "glue:*",
-        "cloudwatch:*",
-        "iam:CreateRole",
-        "iam:GetRole",
-        "iam:DeleteRole",
-        "iam:PassRole",
-        "iam:ListRolePolicies",
-        "iam:ListAttachedRolePolicies",
-        "iam:GetRolePolicy",
-        "iam:PutRolePolicy",
-        "iam:DeleteRolePolicy",
-        "iam:GetPolicyVersion"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
+## 📊 Analytics Layer (Amazon Athena)
+
+Data stored in S3 is cataloged in **AWS Glue** and made instantly queryable via standard SQL in **Amazon Athena**.
+
+### Sample SQL Query (`queries/athena_queries.sql`):
+
+```sql
+SELECT 
+    observation_date,
+    base_currency,
+    rates['eur'] AS eur_rate,
+    rates['brl'] AS brl_rate
+FROM fx_rates_db_dev.raw_fx_rates
+ORDER BY observation_date DESC;
+```
+
+### Query Results Preview:
+
+![Athena Query Results](docs/images/athena_query_results.png)
+
+---
+
+## 🛠️ Project Structure
+
+```text
+fx-ingestion-pipeline/
+├── .github/workflows/    # CI/CD Workflows (CI + Terraform Deploy/Destroy)
+├── config.yaml           # Centralized configuration (IaC & App)
+├── docs/                 # Project documentation & guides
+│   ├── diagrams/         # Generated architecture diagrams (PNG)
+│   │   └── fx_ingestion_architecture.png
+│   ├── images/           # Documentation images and screenshots
+│   │   └── athena_query_results.png
+│   ├── architecture_diagram.md # Detailed guide mapping AWS components & flows
+│   ├── architecture_guide.md # Clean Architecture & domain design overview
+│   └── iam_roles_guide.md # Detailed AWS IAM Roles & Permissions Guide
+├── infra/
+│   └── terraform/        # Terraform modules (Lambda, S3, Glue, IAM, EventBridge)
+├── queries/
+│   └── athena_queries.sql # Athena DDL & analytical queries
+├── src/
+│   ├── adapters/         # API Client & Lambda Handler
+│   ├── domain/           # Entities, Pydantic Schemas, and Business Rules
+│   ├── infra/            # S3 Repository (Boto3 persistence)
+│   └── use_cases/        # Orchestrator Use Cases
+└── tests/                # Unit & Integration Tests (100% Coverage)
 ```
 
 ---
 
-## 2. Ingestion Execution Role: `fx-ingestion-lambda-role-<env>`
+## 📚 Detailed Documentation
 
-This role is assumed by the AWS Lambda function at runtime.
+For deeper dives into specific aspects of the platform, refer to the guides below:
 
-### Required Permissions & Why They Are Necessary
+* ☁️ **[AWS Architecture Diagram Guide](docs/architecture_diagram.md):** In-depth functional description of each AWS component, event flows, Lambda configuration, CloudWatch alarms, and SNS topics.
+* 📐 **[Software Architecture Guide](docs/architecture_guide.md):** In-depth explanation of Clean Architecture layers, Domain-Driven Design (DDD) principles, Pydantic schemas, Python dataclass validation, and testing mock strategy.
+* 🛡️ **[AWS IAM Roles & Permissions Guide](docs/iam_roles_guide.md):** Detailed security configuration, resource-restricted IAM policy JSONs (both for Terraform execution and Lambda runtime), EventBridge CRON rules, and alerting flows.
 
-| Policy / Permission | Actions | Why It's Necessary |
-| :--- | :--- | :--- |
-| **`AWSLambdaBasicExecutionRole`** (Managed) | `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents` | Allows the function to write its execution logs to AWS CloudWatch for debugging and tracking. |
-| **S3 Least-Privilege Policy** | `s3:PutObject`, `s3:GetObject`, `s3:ListBucket` | Allows the python ingestion code to fetch Frankfurter API payloads and upload them to the S3 raw storage partition. |
+---
 
-### Terraform Resource Configuration
+## 🚀 Getting Started Locally
 
-This role and its permissions are declared declaratively in [main.tf](file:///c:/Users/isabe/Documents/projetos/fx-ingestion-pipeline/infra/terraform/main.tf):
+### Prerequisites
 
-```hcl
-resource "aws_iam_role" "lambda_exec_role" {
-  name = local.lambda_role_name
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = { Service = "lambda.amazonaws.com" }
-    }]
-  })
-}
+* **Python 3.12+** and **uv** package manager
+* **Terraform >= 1.5.0**
+* **AWS CLI** configured
 
-resource "aws_iam_policy" "lambda_s3_policy" {
-  name        = local.lambda_s3_policy_name
-  description = "Allows Lambda to write raw FX rate payloads into S3 bucket"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = ["s3:PutObject", "s3:GetObject", "s3:ListBucket"]
-      Resource = [
-        data.aws_s3_bucket.fx_raw_data.arn,
-        "${data.aws_s3_bucket.fx_raw_data.arn}/*"
-      ]
-    }]
-  })
-}
+### 1. Installation & Environment Setup
+
+```bash
+# Clone repository
+git clone https://github.com/isabelapt/fx-ingestion-pipeline.git
+cd fx-ingestion-pipeline
+
+# Install dependencies with uv
+uv sync
 ```
+
+### 2. Run Test Suite
+
+```bash
+# Run unit and integration tests with coverage
+uv run pytest --cov=src --cov-report=term-missing
+```
+
+### 3. Provision AWS Infrastructure
+
+```bash
+cd infra/terraform
+terraform init
+terraform apply -auto-approve
+```
+
+### 4. Destroy AWS Resources
+
+```bash
+cd infra/terraform
+terraform destroy -auto-approve
+```
+
+---
+
+## 🛡️ License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
