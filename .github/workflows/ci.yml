@@ -99,6 +99,8 @@ jobs:
       - name: Validate required CI variables
         run: |
           test -n "${{ secrets.AWS_ROLE_ARN }}" || { echo "AWS_ROLE_ARN is not set"; exit 1; }
+          test -n "${{ secrets.AWS_ACCOUNT_ID }}" || { echo "AWS_ACCOUNT_ID is not set"; exit 1; }
+          [[ "${{ secrets.AWS_ACCOUNT_ID }}" =~ ^[0-9]{12}$ ]] || { echo "AWS_ACCOUNT_ID must be exactly 12 digits"; exit 1; }
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -108,7 +110,13 @@ jobs:
           audience: "sts.amazonaws.com"
 
       - name: Verify AWS identity
-        run: aws sts get-caller-identity
+        run: |
+          caller_identity=$(aws sts get-caller-identity --query Account --output text)
+          echo "Authenticated Account ID: $caller_identity"
+          if [ "$caller_identity" != "${{ secrets.AWS_ACCOUNT_ID }}" ]; then
+            echo "Error: Authenticated AWS Account ID ($caller_identity) does not match expected AWS_ACCOUNT_ID (${{ secrets.AWS_ACCOUNT_ID }})"
+            exit 1
+          fi
 
       - name: Inject AWS Account ID
         run: |
@@ -121,6 +129,7 @@ jobs:
           TF_LOG: INFO
           TF_LOG_PATH: terraform.log
           TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+          TF_VAR_aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         run: |
           set -euo pipefail
           cd infra/terraform
