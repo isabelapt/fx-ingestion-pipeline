@@ -116,7 +116,10 @@ Terraform works by comparing the local configuration against the real resources 
 				"sns:DeleteTopic",
 				"sns:ListTagsForResource",
 				"sns:TagResource",
-				"sns:Subscribe"
+				"sns:Subscribe",
+				"sns:GetSubscriptionAttributes",
+				"sns:SetSubscriptionAttributes",
+				"sns:Unsubscribe"
 			],
 			"Resource": [
 				"arn:aws:sns:us-east-1:123456789012:fx-ingestion-alerts-topic-dev",
