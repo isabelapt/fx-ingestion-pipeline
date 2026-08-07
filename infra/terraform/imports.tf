@@ -5,12 +5,12 @@ import {
 
 import {
   to = aws_iam_policy.lambda_s3_policy
-  id = "arn:aws:iam::${var.aws_account_id}:policy/fx-lambda-s3-write-dev"
+  id = "arn:aws:iam::AWS_ACCOUNT_ID_PLACEHOLDER:policy/fx-lambda-s3-write-dev"
 }
 
 import {
   to = aws_glue_catalog_database.fx_database
-  id = "${var.aws_account_id}:fx_rates_db_dev"
+  id = "AWS_ACCOUNT_ID_PLACEHOLDER:fx_rates_db_dev"
 }
 
 import {
@@ -20,7 +20,7 @@ import {
 
 import {
   to = aws_sns_topic.data_team_alerts
-  id = "arn:aws:sns:us-east-1:${var.aws_account_id}:fx-ingestion-alerts-topic-dev"
+  id = "arn:aws:sns:us-east-1:AWS_ACCOUNT_ID_PLACEHOLDER:fx-ingestion-alerts-topic-dev"
 }
 
 import {
@@ -30,7 +30,7 @@ import {
 
 import {
   to = aws_sns_topic.data_ready_alerts
-  id = "arn:aws:sns:us-east-1:${var.aws_account_id}:fx-ingestion-data-ready-topic-dev"
+  id = "arn:aws:sns:us-east-1:AWS_ACCOUNT_ID_PLACEHOLDER:fx-ingestion-data-ready-topic-dev"
 }
 
 import {

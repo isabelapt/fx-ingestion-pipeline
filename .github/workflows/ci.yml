@@ -50,6 +50,11 @@ jobs:
           cd infra/terraform
           terraform fmt -check -diff -recursive
 
+      - name: Inject Mock AWS Account ID for Validation
+        run: |
+          sed -i 's/AWS_ACCOUNT_ID_PLACEHOLDER/123456789012/g' infra/terraform/imports.tf
+          sed -i 's/AWS_ACCOUNT_ID_PLACEHOLDER/123456789012/g' infra/terraform/locals.tf
+
       - name: Terraform Init & Validate
         run: |
           cd infra/terraform
@@ -105,13 +110,17 @@ jobs:
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
+      - name: Inject AWS Account ID
+        run: |
+          sed -i 's/AWS_ACCOUNT_ID_PLACEHOLDER/${{ secrets.AWS_ACCOUNT_ID }}/g' infra/terraform/imports.tf
+          sed -i 's/AWS_ACCOUNT_ID_PLACEHOLDER/${{ secrets.AWS_ACCOUNT_ID }}/g' infra/terraform/locals.tf
+
       - name: Terraform Plan
         env:
           TF_IN_AUTOMATION: true
           TF_LOG: INFO
           TF_LOG_PATH: terraform.log
           TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
-          TF_VAR_aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
         run: |
           set -euo pipefail
           cd infra/terraform
