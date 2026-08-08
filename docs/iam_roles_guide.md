@@ -75,7 +75,8 @@ Terraform works by comparing the local configuration against the real resources 
 			"Effect": "Allow",
 			"Action": [
 				"cloudwatch:PutMetricAlarm",
-				"cloudwatch:DeleteAlarms"
+				"cloudwatch:DeleteAlarms",
+				"cloudwatch:ListTagsForResource"
 			],
 			"Resource": "arn:aws:cloudwatch:us-east-1:123456789012:alarm:fx-ingestor-error-alarm-dev"
 		},
@@ -114,7 +115,11 @@ Terraform works by comparing the local configuration against the real resources 
 				"sns:SetTopicAttributes",
 				"sns:DeleteTopic",
 				"sns:ListTagsForResource",
-				"sns:TagResource"
+				"sns:TagResource",
+				"sns:Subscribe",
+				"sns:GetSubscriptionAttributes",
+				"sns:SetSubscriptionAttributes",
+				"sns:Unsubscribe"
 			],
 			"Resource": [
 				"arn:aws:sns:us-east-1:123456789012:fx-ingestion-alerts-topic-dev",
