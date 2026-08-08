@@ -108,7 +108,7 @@ resource "aws_cloudwatch_event_target" "lambda_target" {
 }
 
 resource "aws_lambda_permission" "allow_eventbridge" {
-  statement_id  = "AllowExecutionFromEventBridgeDev"
+  statement_id  = "AllowEventBridgeDailyTrigger"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.fx_ingestor.function_name
   principal     = "events.amazonaws.com"

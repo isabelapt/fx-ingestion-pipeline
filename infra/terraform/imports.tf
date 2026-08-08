@@ -42,3 +42,8 @@ import {
   to = aws_lambda_function.fx_ingestor
   id = "fx-rate-ingestor-dev"
 }
+
+import {
+  to = aws_lambda_permission.allow_eventbridge
+  id = "fx-rate-ingestor-dev/AllowEventBridgeDailyTrigger"
+}
